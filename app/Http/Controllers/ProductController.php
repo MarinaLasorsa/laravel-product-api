@@ -8,18 +8,79 @@ use App\Models\Product;
 class ProductController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     *
+     *  @OA\Get(
+     *      path="/api/products",
+     *      tags={"Product"},
+     *      summary="Get all products",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 @OA\Property(property="id", type="integer"),
+     *                 @OA\Property(property="name", type="string"),
+     *                 @OA\Property(property="description", type="string"),
+     *                 @OA\Property(property="price", type="number"),
+     *                 @OA\Property(
+     *                     property="categories",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         @OA\Property(property="id", type="integer"),
+     *                         @OA\Property(property="name", type="string")
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *      )
+     *  )
+     *
      */
     public function index()
     {
-        $products = Product::all();
+        $products = Product::with('categories')->get();
 
         return response()->json($products);
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
+     *
+     *  @OA\Post(
+     *      path="/api/products",
+     *      tags= {"Product"},
+     *      summary="Insert new product",
+     *      @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *                  @OA\Property(property="name", type="string"),
+     *                  @OA\Property(property="description", type="string"),
+     *                  @OA\Property(property="price", type="number"),
+     *                  @OA\Property(property="category_ids", type="array", @OA\Items(type="integer")
+     *                  )
+     *              )
+     *          ),
+     *          @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer"),
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="price", type="number"),
+     *             @OA\Property(
+     *                 property="categories",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer"),
+     *                     @OA\Property(property="name", type="string")
+     *                 )
+     *             )
+     *         )
+     *      )
+     *  )
+     *
+     **/
     public function store(Request $request)
     {
         $product = Product::create($request->all());
@@ -28,15 +89,44 @@ class ProductController extends Controller
             $product->categories()->attach($request->category_ids);
         }
 
-        return response()->json($product);
+        return response()->json($product->load('categories'));
     }
 
     /**
-     * Display the specified resource.
+     * @OA\Get(
+     *     path="/api/products/{id}",
+     *     tags={"Product"},
+     *     summary="Show single product",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the product",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer"),
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="price", type="number"),
+     *             @OA\Property(
+     *                 property="categories",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer"),
+     *                     @OA\Property(property="name", type="string")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
      */
     public function show(int $id)
     {
-        $product = Product::find($id);
+        $product = Product::with('categories')->find($id);
 
         if($product) {
 
@@ -49,7 +139,46 @@ class ProductController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * @OA\Put(
+     *     path="/api/products/{id}",
+     *     tags={"Product"},
+     *     summary="Update product",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the product to update",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *                 @OA\Property(property="name", type="string"),
+     *                  @OA\Property(property="description", type="string"),
+     *                  @OA\Property(property="price", type="number"),
+     *                  @OA\Property(property="category_ids", type="array", @OA\Items(type="integer")
+     *                  )
+     *             )
+     *         ),
+     *          @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer"),
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="price", type="number"),
+     *             @OA\Property(
+     *                 property="categories",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer"),
+     *                     @OA\Property(property="name", type="string")
+     *                 )
+     *             )
+     *         )
+     *      )
+     *  )
      */
     public function update(Request $request, int $id)
     {
@@ -65,7 +194,7 @@ class ProductController extends Controller
                 $product->categories()->detach();
             }
 
-            return response()->json($product);
+            return response()->json($product->load('categories'));
 
         } else {
 
@@ -74,7 +203,22 @@ class ProductController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @OA\Delete(
+     *     path="/api/products/{id}",
+     *     tags={"Product"},
+     *     summary="Delete product",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the product to delete",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success"
+     *     )
+     * )
      */
     public function destroy(int $id)
     {
